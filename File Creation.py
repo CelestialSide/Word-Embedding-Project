@@ -44,6 +44,6 @@ def txtToCSV(fileName, title, outputFile):
     append(story, title, outputFile)
 
 
-txtToCSV("Input.txt", "Eleonora", "Story_Database.csv")
+txtToCSV("Input.txt", "Frankenstein", "Story_Database.csv")
 # csvFix("Dupe.csv", "Story_Database.csv")
 
