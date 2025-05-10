@@ -19,16 +19,17 @@ class Word2Vec:
         print("Number of paired words:", pairs)
 
     def __init__(self, file, embed_size = 100, window_size = 3):
+        self.word_freq = np.array
         self.window_size = window_size
         self.embedding_size = embed_size
 
-        V, vocab, callback, pos_context = self.Preprocessing(file)
+        V, vocab, callback, pos_context, word_freq = self.Preprocessing(file)
         self.V = V
         self.vocab = vocab
         self.callback = callback
         self.pos_context = pos_context
 
-        neg_context = self.create_negative_context(5)
+        neg_context = self.create_negative_context()
         self.neg_context = neg_context
 
 
@@ -62,20 +63,34 @@ class Word2Vec:
                         pos_context[center][1] += 1
                         if context not in pos_context[center][0]:
                             pos_context[center][0].append(context)
-        return V, vocab, callback, pos_context
+        # Total context frequency (for all words)
+        word_freq = np.zeros(V, dtype=float)
+        for key in pos_context:
+            word_freq += pos_context[key][2]  # Sum over all context counts
+        self.word_freq = word_freq
+        return V, vocab, callback, pos_context, word_freq
 
         # Returns a list of numbers Ex. [0, 1, 0, 1, 3]
             # (5 words exist in vocab)
-    def create_negative_context(self, k = 5):
+    def create_negative_context(self, k = 3):
+        # Apply smoothing: freq^0.75
+        freq_dist = self.word_freq ** 0.75
+        freq_dist /= freq_dist.sum()  # Normalize to make it a probability distribution
+
+        # Pre-sample a large number of negative samples to speed up training
+        neg_sample_pool = np.random.choice(
+            np.arange(self.V), size=1000000, p=freq_dist)
+        pool_index = 0
+
         neg_context = {key: np.zeros(self.V, dtype=int) for key in self.pos_context}
-        tracker = 0
 
         for key in tqdm.tqdm(neg_context):
-            for i in range(self.pos_context[key][1]):
+            for _ in range(self.pos_context[key][1]):
                 tracker = 0
                 while tracker < k:
-                    neg_sample = random.randint(0, self.V - 1)
-                    if neg_sample not in self.pos_context[key][0] and neg_sample != key:
+                    neg_sample = neg_sample_pool[pool_index]
+                    pool_index = (pool_index + 1) % len(neg_sample_pool)
+                    if neg_sample != key and neg_sample not in self.pos_context[key][0]:
                         neg_context[key][neg_sample] += 1
                         tracker += 1
         return neg_context
@@ -115,38 +130,38 @@ class SkipGram(nn.Module):
         self.V = w2v.V
         self.embedding_size = w2v.embedding_size
 
-        # Target (center) word embeddings
+            # Target word embeddings (INPUT)
         self.input_embeddings = nn.Embedding(self.V, self.embedding_size)
-        # Context (output) word embeddings
+            # Context word embeddings (OUTPUT)
         self.output_embeddings = nn.Embedding(self.V, self.embedding_size)
 
-        # Initialize weights
+            # Initialize weights
         self.embedding_weight()
 
     def embedding_weight(self):
         nn.init.xavier_uniform_(self.input_embeddings.weight)
         nn.init.xavier_uniform_(self.output_embeddings.weight)
 
-    def forward(self, target_idxs, context_idxs, labels):
-        # shape: (batch_size, embedding_size)
-        target_embeds = self.input_embeddings(target_idxs)
-        context_embeds = self.output_embeddings(context_idxs)
+    def forward(self, target, context, labels):
+            # shape: (batch_size, embedding_size)
+        target_embeds = self.input_embeddings(target)
+        context_embeds = self.output_embeddings(context)
 
-        # Dot product between target and context embeddings
+            # Dot product between target and context embeddings
         dot_product = torch.sum(target_embeds * context_embeds, dim=1)
 
-        # Get Probabilities of context embeddings
+            # Get Probabilities of context embeddings
         log_probs = torch.sigmoid(dot_product)
 
-        # Calculate Loss
+            # Calculate Loss
         loss = F.binary_cross_entropy(log_probs, labels.float())
 
         return loss
 
 
-def train(corpus, num_epochs=10, batch_size = 64, lr = 0.001):
+def train(corpus, num_epochs = 100, batch_size = 64, lr = 0.001):
         # Preprocessing
-    w2v = Word2Vec(corpus, 100, 3)
+    w2v = Word2Vec(corpus, 100, 5)
     w2v.info()
 
         # Initialize Dataset
@@ -155,7 +170,7 @@ def train(corpus, num_epochs=10, batch_size = 64, lr = 0.001):
 
         # Initialize model
     model = SkipGram(w2v)
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     # Training loop
     for epoch in (range(num_epochs)):
@@ -170,10 +185,10 @@ def train(corpus, num_epochs=10, batch_size = 64, lr = 0.001):
 
             running_loss += loss.item()
 
-        print(f"Epoch {epoch+1} of {num_epochs}, Loss: {running_loss / len(gd):.4f}")
+        print(f"Epoch {epoch+1} of {num_epochs}, Loss: {running_loss / len(gd):.10f}")
 
     w2v.info()
-    torch.save(model.state_dict(), "DataSet/skip-gram_model.pt")
+    torch.save(model.state_dict(), "full_model.pt")
     return model
 
 
@@ -183,7 +198,10 @@ def train(corpus, num_epochs=10, batch_size = 64, lr = 0.001):
 # Window Size: 3
 # Number of paired words: 1574566
 
-train("Cleaned_Corpus.csv", 10)
+train("Cleaned_Corpus.csv", 30)
+
+# Interesting Cosine Findings:
+    # Monster
 
 
 
