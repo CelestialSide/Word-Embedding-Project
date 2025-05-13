@@ -11,48 +11,41 @@ to speed up training time.
 
 
 # Dataset Creation Steps
-- Removed non-alphabetic characters
-- Punctuation (excluding : . ? ! : ')
-- Lemmatized words
-- removed stop words
-- removed words not found in `spacy` English dictionary
-- removed sentences with <2 words
-- Manual Cleanup
+- Removed non-alphabetic characters.
+- Punctuation (excluding : . ? ! : ').
+- Lemmatized words.
+- Removed stop words.
+- Removed words not found in `spacy` English dictionary.
+- Removed sentences with <2 words.
+- Manual Cleanup.
 
 # Preprocessing
-Before training some preprocessing steps needed to be done, for the full model we chose a window size of 5 which created
-positive pairs dependent on what surrounded the word, these were then stored as a frequency list. Then, for every positive 
-pair 5 negative pairs were sampled and stored as a frequency list. Finally the target word, positive or negative sample, and 
-label were stored in a torch dataset for dataloading.
+Before training, some preprocessing steps needed to be done. For the full model, we chose a window size of 5, which created
+positive pairs dependent on what surrounded the word. These positive pairs were then stored as a frequency list. For every positive pair, 5 negative pairs were sampled and stored as a frequency list. Finally the target word, positive or negative sample, and label were stored in a torch dataset for dataloading.
 
 # Training
 - Input Layer:
-  - one-hot vector of shape 23,188 x 1
-  - represents the target word in our vocabulary.
+  - One-hot vector of shape 23,188 x 1.
+  - Represents the target word in our vocabulary.
 - Embedding Layer:
-  - Input is multiplied by Embedding Vector
-    - Size 1 x 100
+  - Input is multiplied by Embedding Vector.
+    - Size 1 x 100.
     - Embedding Vector is initialized with weights randomized with uniform randomness.
   - This results in the embedding layer of shape 23,188 by 100.
 - Hidden Layer:
-  - Splits into two branches
-    - Top Branch: Positive Samples
-    - Bottom Branch: Negative Samples
-  - Both branches are updated during batching to train in real weights
-    - Resulting Vector's shape is not altered
+  - Splits into two branches:
+    - Top Branch: Positive Samples.
+    - Bottom Branch: Negative Samples.
+  - Both branches are updated during batching to train in real weights.
+    - Resulting Vector's shape is not altered.
     - Multiple pairs (target, context) are processed in parallel.
-    - Input Embedding is stacked into 64 matrices of size 23,188 by 100
-      - Increases training efficiency and gradient stability.
+    - Input Embedding is stacked into 64 matrices of size 23,188 by 100.
+  - Increases training efficiency and gradient stability.
 - Output:
-  - The top branch is multiplied by the transpose of the bottom branch (Matrix Multiplication)
-  - Result is a 23,188 x 23,188 Matrix which contains cosine similarites
+  - The top branch is multiplied by the transpose of the bottom branch (Matrix Multiplication).
+  - Result is a 23,188 x 23,188 Matrix which contains cosine similarites.
 
 
 # Findings
 
-After training up a multitude of models we found the models trained on a single short story or book tended to work
-the best overall. When analyzing the full corpus the output cosine similarities tended to be at or around 0.5 which is not
-great in comparison to the individual stories which often had output cosine similarities around 0.7. We believe the 
-reason is that authors tend to write in different styles that often place common words, such as `man`, in with different context pairings,
-causing the overall similarities to be low. Rare words (For example `seaman` and `fatal`) tended to output more accurate words
-but the score was still low. In single story datasets names in particular tended to result in higher scores.
+After training up a multitude of models, we found the models trained on a single short story or book tended to work the best overall. When analyzing the full corpus, the output cosine similarities tended to be at or around 0.5, which is not great in comparison to the individual stories which often had output cosine similarities around 0.7. We believe the reason for this discrepancy is that authors tend to write in different styles that often place common words, such as `man`, in with different context pairings, which causes the overall similarities to be low. Rare words (For example `seaman` and `fatal`) tended to output more accurate words, but the score was still low. In single story datasets names, in particular, tended to result in higher scores.
