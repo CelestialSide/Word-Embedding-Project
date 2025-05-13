@@ -8,6 +8,7 @@ from torch.utils.data import Dataset, DataLoader
 from torch.nn import functional as F
 
 class Word2Vec:
+        # Prints out some useful information
     def info(self):
         pairs = 0
         for x in self.pos_context.items():
@@ -32,7 +33,8 @@ class Word2Vec:
         neg_context = self.create_negative_context()
         self.neg_context = neg_context
 
-
+        # Preprocessing creates vocab and target word context word pairings
+            # Along with some information attached to the two objects
     def Preprocessing(self, file):
         df = pd.read_csv(file)
         corpus = df['Story'].to_numpy()
@@ -50,8 +52,11 @@ class Word2Vec:
                     vocab[word] = index
                     index += 1
         callback = {i: word for word, i in vocab.items()}
-        V = len(vocab)
+        V = len(vocab) # Length of vocab list
         pos_context = {key: [[], 0, np.zeros(V)] for key in callback}
+
+            # Appends Dictionary of Target_Word
+                # Context words, Total Number of Pairs, Context Word Frequencies
         for sent in np.ndindex(corpus.shape[0]):
             sentence = corpus[sent]
             for i in range(len(sentence)):
@@ -70,8 +75,7 @@ class Word2Vec:
         self.word_freq = word_freq
         return V, vocab, callback, pos_context, word_freq
 
-        # Returns a list of numbers Ex. [0, 1, 0, 1, 3]
-            # (5 words exist in vocab)
+
     def create_negative_context(self, k = 3):
         # Apply smoothing: freq^0.75
         freq_dist = self.word_freq ** 0.75
@@ -95,7 +99,7 @@ class Word2Vec:
                         tracker += 1
         return neg_context
 
-
+    # Initializes Data in tuple (Target_Word, Positive/Negative_Sample, 0/1)
 class GothicDataset(Dataset):
     def __init__(self, pos_samples, neg_samples):
         pos_context = {key: pos_samples[key][2] for key in pos_samples}
@@ -188,20 +192,11 @@ def train(corpus, num_epochs = 100, batch_size = 64, lr = 0.001):
         print(f"Epoch {epoch+1} of {num_epochs}, Loss: {running_loss / len(gd):.10f}")
 
     w2v.info()
-    torch.save(model.state_dict(), "full_model.pt")
+    torch.save(model.state_dict(), "Models/Cask_Model.pt")
     return model
-
-
-# Epoch 10 of 10, Loss: 0.0108
-# Number of Unique Words: 23188
-# Embedding Size: 100
-# Window Size: 3
-# Number of paired words: 1574566
 
 train("Cleaned_Corpus.csv", 30)
 
-# Interesting Cosine Findings:
-    # Monster
 
 
 
