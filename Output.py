@@ -20,9 +20,10 @@ def get_similar_words(model, w2v, word, n = 10):
         # Get the embedding vector for the input word
     target_embed = norm_embeds[word_index].unsqueeze(0)  # shape: (1, embedding_dim)
 
-        # Compute cosine similarities and find n
+        # Compute cosine similarities and find n best results
     similarities = torch.matmul(norm_embeds, target_embed.T).squeeze()  # shape: (V,V)
 
+        # n + 1 removes target word as it will always be best result
     scores, indices = torch.topk(similarities, n + 1)
     indices = indices.tolist()
     scores = scores.tolist()
