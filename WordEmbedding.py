@@ -77,9 +77,9 @@ class Word2Vec:
 
 
     def create_negative_context(self, k = 3):
-        # Apply smoothing: freq^0.75
+                # Frequency Distribution (Creates a more accurate sampling pool)
         freq_dist = self.word_freq ** 0.75
-        freq_dist /= freq_dist.sum()  # Normalize to make it a probability distribution
+        freq_dist /= freq_dist.sum()
 
         # Pre-sample a large number of negative samples to speed up training
         neg_sample_pool = np.random.choice(
