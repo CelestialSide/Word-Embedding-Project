@@ -2,6 +2,21 @@
 This project intends to create a Word2Vec model from scratch in order to find semantic relationships
 between words in 1800s Gothic Literature.
 
+# Contents
+- Models
+  - All models that were trained, associated dataset is found in folder for output
+- Dataset
+  - Story Database and File Creation were old attempts and were not used to create final dataset
+  - Corpus Cleaning created our final dataset(s), full dataset is found in model under `Full Model`
+- Output.py : This lets you analyze different relationships
+  - When using Output.py please comment out the train line in WordEmbedding.py or it will train a new model
+  - You may also comment out the following code in the Word2Vec class to decrease time as it is not required for output
+    ```
+    neg_context = self.create_negative_context()
+    self.neg_context = neg_context
+    ```
+- WordEmbedding.py : Trains model on dataset given (Full dataset took about 15 hours to train)
+
 # Dataset
 We created a dataset from scratch for this project. In order to create the dataset we first pulled the raw text
 of many books within the time period and genre (Source : Project Gutenberg). The title was kept in the dataset
